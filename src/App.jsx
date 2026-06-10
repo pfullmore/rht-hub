@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const CMS_NOFO_URL = "https://apply07.grants.gov/apply/opportunities/instructions/PKG00291485-instructions.pdf";
@@ -13,21 +13,21 @@ const ALL_INITIATIVES = [
   "Prevention","FQHC / Community Health","Maternal & Doula","Facility Modernization",
 ];
 
+// States with RFPs released very recently (within ~30 days of data date)
+const RECENTLY_RELEASED = new Set(["AK","CO","TN","NV","SC","SD","ND","OR","NM","IA"]);
+
 const fitColor = { Strong:"#16a34a", Moderate:"#d97706", Limited:"#9ca3af" };
 const fitBg    = { Strong:"#dcfce7", Moderate:"#fef3c7", Limited:"#f3f4f6" };
 
 // ─── DATA HOOK ────────────────────────────────────────────────────────────────
 function useData() {
-  const [data, setData]     = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
     fetch("/data.json")
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
@@ -36,10 +36,10 @@ function useData() {
 }
 
 // ─── SMALL UI HELPERS ─────────────────────────────────────────────────────────
-function Pill({ color, bg, icon, children }) {
+function Pill({ color, bg, icon, children, style: extra }) {
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:700,
-      padding:"3px 9px", borderRadius:20, background:bg, color, whiteSpace:"nowrap" }}>
+      padding:"3px 9px", borderRadius:20, background:bg, color, whiteSpace:"nowrap", ...extra }}>
       {icon && <i className={`ti ${icon}`} style={{ fontSize:11 }} aria-hidden="true" />}
       {children}
     </span>
@@ -62,17 +62,48 @@ function PortalLink({ url, label, stopProp }) {
   );
 }
 
+// ─── INITIATIVE TAG ───────────────────────────────────────────────────────────
+function InitTag({ label, highlight }) {
+  return (
+    <span style={{
+      fontSize:10, padding:"2px 7px", borderRadius:10, fontWeight:500,
+      background: highlight ? "#eff6ff" : "#f3f4f6",
+      color: highlight ? "#1e40af" : "#374151",
+      border: highlight ? "1px solid #bfdbfe" : "1px solid #d1d5db",
+    }}>{label}</span>
+  );
+}
+
 // ─── STATE CARD ───────────────────────────────────────────────────────────────
-function StateCard({ s, onClick }) {
+function StateCard({ s, onClick, isRecent }) {
   return (
     <button onClick={() => onClick(s)}
       style={{ width:"100%", textAlign:"left", cursor:"pointer", background:"#fff",
-        border:"2px solid #d1d5db", borderRadius:10, padding:"14px 16px",
+        border: isRecent ? "2px solid #7c3aed" : "2px solid #d1d5db",
+        borderRadius:10, padding:"14px 16px",
         display:"flex", flexDirection:"column", gap:10, transition:"all 0.15s",
-        boxShadow:"0 1px 3px rgba(0,0,0,0.07)" }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor="#3b82f6"; e.currentTarget.style.boxShadow="0 2px 8px rgba(59,130,246,0.18)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor="#d1d5db"; e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.07)"; }}
+        boxShadow: isRecent ? "0 2px 10px rgba(124,58,237,0.12)" : "0 1px 3px rgba(0,0,0,0.07)",
+        position:"relative", overflow:"hidden" }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = isRecent ? "#6d28d9" : "#3b82f6";
+        e.currentTarget.style.boxShadow = isRecent ? "0 4px 16px rgba(124,58,237,0.22)" : "0 2px 8px rgba(59,130,246,0.18)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = isRecent ? "#7c3aed" : "#d1d5db";
+        e.currentTarget.style.boxShadow = isRecent ? "0 2px 10px rgba(124,58,237,0.12)" : "0 1px 3px rgba(0,0,0,0.07)";
+      }}
     >
+      {/* Recently released ribbon */}
+      {isRecent && (
+        <div style={{ position:"absolute", top:0, right:0,
+          background:"#7c3aed", color:"#fff", fontSize:9, fontWeight:800,
+          padding:"3px 10px 3px 6px", borderBottomLeftRadius:8, letterSpacing:0.4,
+          display:"flex", alignItems:"center", gap:3 }}>
+          <i className="ti ti-sparkles" style={{ fontSize:9 }} />
+          NEW RFP
+        </div>
+      )}
+
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
         <div>
           <p style={{ margin:0, fontWeight:700, fontSize:15, color:"#111827" }}>{s.name}</p>
@@ -103,11 +134,17 @@ function StateCard({ s, onClick }) {
             Est. release: {s.anticipatedRelease}
           </p>
         )}
+        {/* Show up to 3 initiative tags on the card */}
         <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-          {(s.initiatives || []).slice(0, 2).map(i => (
-            <span key={i} style={{ fontSize:10, padding:"2px 7px", borderRadius:10,
-              background:"#f3f4f6", color:"#374151", border:"1px solid #d1d5db", fontWeight:500 }}>{i}</span>
+          {(s.initiatives || []).slice(0, 3).map(i => (
+            <InitTag key={i} label={i} />
           ))}
+          {(s.initiatives || []).length > 3 && (
+            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:10, background:"#f3f4f6",
+              color:"#9ca3af", border:"1px solid #d1d5db", fontWeight:500 }}>
+              +{(s.initiatives || []).length - 3} more
+            </span>
+          )}
         </div>
       </div>
     </button>
@@ -115,7 +152,7 @@ function StateCard({ s, onClick }) {
 }
 
 // ─── STATE OVERLAY ────────────────────────────────────────────────────────────
-function Overlay({ s, onClose }) {
+function Overlay({ s, onClose, isRecent }) {
   const isEmail = s.portalUrl?.startsWith("mailto:");
 
   const steps = [
@@ -141,26 +178,48 @@ function Overlay({ s, onClose }) {
     <div style={{ position:"fixed", inset:0, zIndex:9999, display:"flex", alignItems:"flex-start",
       justifyContent:"center", padding:"1.5rem 1rem", overflowY:"auto", background:"rgba(0,0,0,0.78)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background:"#fff", borderRadius:14, border:"2px solid #e5e7eb",
+      <div style={{ background:"#fff", borderRadius:14,
+        border: isRecent ? "2px solid #7c3aed" : "2px solid #e5e7eb",
         width:"100%", maxWidth:660, padding:"1.75rem",
         boxShadow:"0 25px 60px rgba(0,0,0,0.35)", marginBottom:"2rem" }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
           <div>
-            <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#111827" }}>
-              {s.name} <span style={{ fontSize:15, color:"#6b7280", fontWeight:500 }}>({s.abbr})</span>
-            </h2>
+            <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+              <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#111827" }}>
+                {s.name} <span style={{ fontSize:15, color:"#6b7280", fontWeight:500 }}>({s.abbr})</span>
+              </h2>
+              {isRecent && (
+                <span style={{ display:"inline-flex", alignItems:"center", gap:4,
+                  background:"#7c3aed", color:"#fff", fontSize:11, fontWeight:800,
+                  padding:"3px 10px", borderRadius:20, letterSpacing:0.3 }}>
+                  <i className="ti ti-sparkles" style={{ fontSize:11 }} /> Recently released
+                </span>
+              )}
+            </div>
             <p style={{ margin:"4px 0 0", fontSize:13, color:"#6b7280" }}>{s.agency}</p>
           </div>
           <button onClick={onClose} aria-label="Close"
             style={{ background:"#111827", color:"#fff", border:"none", borderRadius:8,
               cursor:"pointer", padding:"7px 14px", fontSize:13, fontWeight:700,
-              display:"flex", alignItems:"center", gap:5 }}>
+              display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
             <i className="ti ti-x" /> Close
           </button>
         </div>
+
+        {/* Recently released callout */}
+        {isRecent && (
+          <div style={{ marginBottom:14, padding:"10px 14px", background:"#f5f3ff",
+            border:"2px solid #7c3aed", borderRadius:8,
+            display:"flex", alignItems:"center", gap:10 }}>
+            <i className="ti ti-sparkles" style={{ fontSize:18, color:"#7c3aed", flexShrink:0 }} />
+            <p style={{ margin:0, fontSize:13, color:"#4c1d95", fontWeight:600 }}>
+              This state recently released new RFP opportunities. Check the portal now for open application windows.
+            </p>
+          </div>
+        )}
 
         {/* Info grid */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
@@ -198,15 +257,34 @@ function Overlay({ s, onClose }) {
           </div>
         )}
 
-        {/* Initiatives */}
+        {/* ALL Initiatives — full list */}
         <div style={{ marginBottom:14 }}>
-          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Key initiatives</p>
+          <p style={{ margin:"0 0 8px", fontSize:13, fontWeight:700, color:"#111827" }}>
+            All key initiatives
+            <span style={{ fontSize:11, fontWeight:500, color:"#6b7280", marginLeft:6 }}>
+              ({(s.initiatives || []).length} total)
+            </span>
+          </p>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-            {(s.initiatives || []).map(i => (
-              <span key={i} style={{ fontSize:12, padding:"4px 10px", borderRadius:20,
-                background:"#f3f4f6", color:"#374151", border:"1px solid #d1d5db", fontWeight:600 }}>{i}</span>
-            ))}
+            {ALL_INITIATIVES.map(i => {
+              const hasIt = (s.initiatives || []).includes(i);
+              return (
+                <span key={i} style={{
+                  fontSize:12, padding:"4px 10px", borderRadius:20, fontWeight:600,
+                  background: hasIt ? "#eff6ff" : "#f9fafb",
+                  color: hasIt ? "#1e40af" : "#9ca3af",
+                  border: hasIt ? "1.5px solid #bfdbfe" : "1.5px solid #e5e7eb",
+                  opacity: hasIt ? 1 : 0.55,
+                }}>
+                  {hasIt && <i className="ti ti-check" style={{ fontSize:10, marginRight:3, color:"#2563eb" }} />}
+                  {i}
+                </span>
+              );
+            })}
           </div>
+          <p style={{ margin:"8px 0 0", fontSize:11, color:"#9ca3af" }}>
+            Blue = initiative present in this state's program. Gray = not a listed focus area.
+          </p>
         </div>
 
         {/* Notes */}
@@ -280,58 +358,162 @@ function Overlay({ s, onClose }) {
 
 // ─── DEADLINE TRACKER ─────────────────────────────────────────────────────────
 function DeadlineTracker({ deadlines }) {
+  const [urgFilter, setUrgFilter] = useState("all");
+  const [sortBy, setSortBy]       = useState("urgency"); // "urgency" | "dueDate" | "releaseDate"
+
   const urgMap = {
-    open:     { color:"#16a34a", label:"Open now",        icon:"ti-circle-check" },
-    upcoming: { color:"#d97706", label:"Upcoming",        icon:"ti-clock" },
-    watch:    { color:"#2563eb", label:"Watch for round", icon:"ti-eye" },
-    pending:  { color:"#9ca3af", label:"Not released",    icon:"ti-minus" },
+    open:     { color:"#16a34a", label:"Open now",        icon:"ti-circle-check", order:0 },
+    upcoming: { color:"#d97706", label:"Upcoming",        icon:"ti-clock",        order:1 },
+    watch:    { color:"#2563eb", label:"Watch for round", icon:"ti-eye",          order:2 },
+    pending:  { color:"#9ca3af", label:"Not released",    icon:"ti-minus",        order:3 },
   };
-  const sections = ["open","upcoming","watch","pending"].map(u => ({
-    u, ...urgMap[u], items: (deadlines || []).filter(d => d.urgency === u),
-  }));
+
+  // Parse a rough date from the nextDue string for sorting
+  function parseDue(str) {
+    if (!str) return new Date("2099-01-01");
+    const m = str.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d+),? (\d{4})/i);
+    if (m) return new Date(`${m[1]} ${m[2]} ${m[3]}`);
+    if (/Q1 2026/i.test(str)) return new Date("2026-03-31");
+    if (/Q2 2026/i.test(str)) return new Date("2026-06-30");
+    if (/Q3 2026/i.test(str)) return new Date("2026-09-30");
+    if (/Q4 2026/i.test(str)) return new Date("2026-12-31");
+    if (/Mid-2026/i.test(str)) return new Date("2026-06-30");
+    if (/rolling/i.test(str)) return new Date("2026-07-01");
+    return new Date("2099-01-01");
+  }
+
+  const filtered = useMemo(() => {
+    let list = urgFilter === "all" ? [...deadlines] : deadlines.filter(d => d.urgency === urgFilter);
+    if (sortBy === "urgency") {
+      list.sort((a, b) => (urgMap[a.urgency]?.order ?? 9) - (urgMap[b.urgency]?.order ?? 9));
+    } else if (sortBy === "dueDate") {
+      list.sort((a, b) => parseDue(a.nextDue) - parseDue(b.nextDue));
+    } else if (sortBy === "releaseDate") {
+      // "open" items came first historically, then upcoming, then pending
+      list.sort((a, b) => {
+        const rOrder = { open:0, upcoming:1, watch:2, pending:3 };
+        return (rOrder[a.urgency] ?? 9) - (rOrder[b.urgency] ?? 9);
+      });
+    }
+    return list;
+  }, [deadlines, urgFilter, sortBy]);
+
+  const urgFilters = ["all","open","upcoming","watch","pending"];
+  const urgLabels  = { all:"All states", open:"Open now", upcoming:"Upcoming", watch:"Watch for round", pending:"Not released" };
+
+  // Group by urgency only when not sorting by date
+  const grouped = useMemo(() => {
+    if (sortBy !== "urgency") return null;
+    const g = {};
+    for (const u of ["open","upcoming","watch","pending"]) {
+      g[u] = filtered.filter(d => d.urgency === u);
+    }
+    return g;
+  }, [filtered, sortBy]);
+
+  function DeadlineRow({ d }) {
+    const u = urgMap[d.urgency] || urgMap.pending;
+    return (
+      <div style={{ background:"#fff", border:"1.5px solid #e5e7eb", borderRadius:8, padding:"12px 14px",
+        display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:12, alignItems:"start" }}>
+        <div>
+          <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>{d.name}</p>
+          <p style={{ margin:"2px 0 5px", fontSize:11, color:"#6b7280", fontWeight:600 }}>{d.award}</p>
+          <PortalLink url={d.portalUrl} label="Open portal" />
+        </div>
+        <div>
+          <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:700, color:"#374151",
+            textTransform:"uppercase", letterSpacing:0.4 }}>Current status</p>
+          <p style={{ margin:"0 0 6px", fontSize:12, color:"#111827", fontWeight:600 }}>{d.specificDate}</p>
+          <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:700, color:"#374151",
+            textTransform:"uppercase", letterSpacing:0.4 }}>Next due date</p>
+          <p style={{ margin:"2px 0 0", fontSize:12, color:"#1e40af", fontWeight:700 }}>{d.nextDue}</p>
+        </div>
+        <Pill color={u.color} bg={u.color + "18"} icon={u.icon}>{u.label}</Pill>
+      </div>
+    );
+  }
 
   return (
     <div>
+      {/* Controls */}
+      <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        {/* Urgency filter pills */}
+        <div style={{ display:"flex", gap:5, flexWrap:"wrap", flex:1 }}>
+          {urgFilters.map(f => {
+            const u = urgMap[f];
+            const count = f === "all" ? deadlines.length : deadlines.filter(d => d.urgency === f).length;
+            return (
+              <button key={f} onClick={() => setUrgFilter(f)}
+                style={{ padding:"6px 12px", fontSize:12, fontWeight:urgFilter===f?700:500,
+                  border:"1.5px solid", cursor:"pointer", borderRadius:20,
+                  borderColor: urgFilter===f ? (u?.color || "#2563eb") : "#d1d5db",
+                  background: urgFilter===f ? ((u?.color || "#2563eb") + "18") : "#fff",
+                  color: urgFilter===f ? (u?.color || "#2563eb") : "#374151",
+                  display:"flex", alignItems:"center", gap:4 }}>
+                {u && <i className={`ti ${u.icon}`} style={{ fontSize:11 }} />}
+                {urgLabels[f]}
+                <span style={{ fontSize:10, fontWeight:600, opacity:0.7 }}>({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Sort dropdown */}
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <i className="ti ti-arrows-sort" style={{ fontSize:13, color:"#6b7280" }} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            style={{ border:"1.5px solid #d1d5db", borderRadius:8, padding:"7px 10px",
+              fontSize:12, color:"#111827", background:"#fff", cursor:"pointer" }}>
+            <option value="urgency">Sort: by urgency</option>
+            <option value="dueDate">Sort: by due date</option>
+            <option value="releaseDate">Sort: by release status</option>
+          </select>
+        </div>
+      </div>
+
       <div style={{ marginBottom:14, padding:"10px 14px", background:"#fffbeb",
         border:"1px solid #fcd34d", borderRadius:8, fontSize:13, color:"#92400e" }}>
         <i className="ti ti-info-circle" style={{ fontSize:13, marginRight:6 }} />
         Many states use rolling deadlines. "Next due" shows the soonest estimated close date.
         Always verify exact dates with the state agency before applying.
       </div>
-      {sections.map(sec => sec.items.length === 0 ? null : (
-        <div key={sec.u} style={{ marginBottom:22 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
-            padding:"8px 12px", borderRadius:8,
-            background:sec.color + "18", borderLeft:`4px solid ${sec.color}` }}>
-            <i className={`ti ${sec.icon}`} style={{ fontSize:16, color:sec.color }} />
-            <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
-              {sec.label} <span style={{ fontWeight:500, color:"#6b7280" }}>({sec.items.length})</span>
-            </p>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-            {sec.items.map(d => (
-              <div key={d.abbr} style={{ background:"#fff", border:"1.5px solid #e5e7eb",
-                borderRadius:8, padding:"12px 14px",
-                display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:12, alignItems:"start" }}>
-                <div>
-                  <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>{d.name}</p>
-                  <p style={{ margin:"2px 0 5px", fontSize:11, color:"#6b7280", fontWeight:600 }}>{d.award}</p>
-                  <PortalLink url={d.portalUrl} label="Open portal" />
-                </div>
-                <div>
-                  <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:700, color:"#374151",
-                    textTransform:"uppercase", letterSpacing:0.4 }}>Current status</p>
-                  <p style={{ margin:"0 0 6px", fontSize:12, color:"#111827", fontWeight:600 }}>{d.specificDate}</p>
-                  <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:700, color:"#374151",
-                    textTransform:"uppercase", letterSpacing:0.4 }}>Next due date</p>
-                  <p style={{ margin:"2px 0 0", fontSize:12, color:"#1e40af", fontWeight:700 }}>{d.nextDue}</p>
-                </div>
-                <Pill color={sec.color} bg={sec.color + "18"} icon={sec.icon}>{sec.label}</Pill>
+
+      {/* Results count */}
+      <p style={{ margin:"0 0 10px", fontSize:12, color:"#6b7280", fontWeight:500 }}>
+        Showing {filtered.length} state{filtered.length !== 1 ? "s" : ""}
+        {urgFilter !== "all" ? ` · filtered by "${urgLabels[urgFilter]}"` : ""}
+        {sortBy !== "urgency" ? ` · sorted by ${sortBy === "dueDate" ? "due date" : "release status"}` : ""}
+      </p>
+
+      {/* Grouped view (when sort = urgency) */}
+      {grouped ? (
+        ["open","upcoming","watch","pending"].map(u => {
+          const items = grouped[u];
+          if (!items || items.length === 0) return null;
+          const meta = urgMap[u];
+          return (
+            <div key={u} style={{ marginBottom:22 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
+                padding:"8px 12px", borderRadius:8,
+                background:meta.color + "18", borderLeft:`4px solid ${meta.color}` }}>
+                <i className={`ti ${meta.icon}`} style={{ fontSize:16, color:meta.color }} />
+                <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
+                  {meta.label} <span style={{ fontWeight:500, color:"#6b7280" }}>({items.length})</span>
+                </p>
               </div>
-            ))}
-          </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {items.map(d => <DeadlineRow key={d.abbr} d={d} />)}
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        /* Flat sorted view */
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {filtered.map(d => <DeadlineRow key={d.abbr} d={d} />)}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -384,7 +566,7 @@ const PSYNERGY = {
 };
 
 function CompanyMatch({ rfps }) {
-  const [view, setView]         = useState("overview");
+  const [view, setView]           = useState("overview");
   const [rfpFilter, setRfpFilter] = useState("all");
   const filtered = rfpFilter === "all" ? rfps : rfps.filter(r => r.andorFit === rfpFilter || r.psynergyFit === rfpFilter);
 
@@ -532,12 +714,13 @@ export default function App() {
   const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [initFilter,   setInitFilter]   = useState("all");
+  const [sortStates,   setSortStates]   = useState("default"); // "default" | "recent" | "alpha" | "award"
   const [selected,     setSelected]     = useState(null);
-  const [showLog,      setShowLog]      = useState(false);
+  const [showHistory,  setShowHistory]  = useState(false);
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-      height:"100vh", flexDirection:"column", gap:12, fontFamily:"system-ui,sans-serif" }}>
+      height:"100vh", flexDirection:"column", gap:12 }}>
       <i className="ti ti-loader-2" style={{ fontSize:36, color:"#2563eb" }} />
       <p style={{ color:"#6b7280", fontSize:14 }}>Loading RHT data…</p>
     </div>
@@ -545,23 +728,59 @@ export default function App() {
 
   if (error) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-      height:"100vh", flexDirection:"column", gap:12, fontFamily:"system-ui,sans-serif" }}>
+      height:"100vh", flexDirection:"column", gap:12 }}>
       <i className="ti ti-alert-circle" style={{ fontSize:36, color:"#dc2626" }} />
       <p style={{ color:"#dc2626", fontSize:14 }}>Failed to load data.json: {error}</p>
-      <p style={{ color:"#6b7280", fontSize:12 }}>Make sure src/data.json exists and is valid JSON.</p>
+      <p style={{ color:"#6b7280", fontSize:12 }}>Make sure data.json exists and is valid JSON.</p>
     </div>
   );
 
   const { states = [], deadlines = [], rfpOpportunities = [], _meta = {} } = data;
 
-  const filtered   = states.filter(s => {
+  // Base filter
+  let filtered = states.filter(s => {
     const ms = s.name.toLowerCase().includes(search.toLowerCase()) || s.abbr.toLowerCase().includes(search.toLowerCase());
     const mf = statusFilter === "all" || s.status === statusFilter;
     const mi = initFilter === "all" || (s.initiatives || []).includes(initFilter);
     return ms && mf && mi;
   });
-  const filtActive  = filtered.filter(s => s.status === "active");
-  const filtPending = filtered.filter(s => s.status === "pending");
+
+  // Sorting
+  if (sortStates === "recent") {
+    filtered = [...filtered].sort((a, b) => {
+      const aR = RECENTLY_RELEASED.has(a.abbr) ? 0 : 1;
+      const bR = RECENTLY_RELEASED.has(b.abbr) ? 0 : 1;
+      if (aR !== bR) return aR - bR;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (sortStates === "alpha") {
+    filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortStates === "award") {
+    // Parse dollar amounts for sort
+    const parseAward = str => {
+      if (!str) return 0;
+      const m = str.match(/\$(\d+(?:\.\d+)?)(M|B)?/i);
+      if (!m) return 0;
+      const n = parseFloat(m[1]);
+      return m[2]?.toUpperCase() === "B" ? n * 1000 : n;
+    };
+    filtered = [...filtered].sort((a, b) => parseAward(b.award) - parseAward(a.award));
+  }
+  // default = active first, then pending, alpha within groups
+  else {
+    filtered = [...filtered].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "active" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  // Split for grouped display only when not sorting by recent/alpha/award explicitly
+  const showGrouped = sortStates === "default";
+  const filtActive  = showGrouped ? filtered.filter(s => s.status === "active")  : [];
+  const filtPending = showGrouped ? filtered.filter(s => s.status === "pending") : [];
+  const filtFlat    = showGrouped ? [] : filtered;
+
+  const recentActive = states.filter(s => s.status === "active" && RECENTLY_RELEASED.has(s.abbr)).length;
 
   return (
     <div style={{ fontFamily:"'Inter',system-ui,-apple-system,sans-serif",
@@ -585,30 +804,97 @@ export default function App() {
                 {states.filter(s => s.status === "pending").length} Pending
               </span>
               <span style={{ fontSize:12, padding:"4px 10px", borderRadius:20, background:"#7c3aed", color:"#fff", fontWeight:700 }}>
-                {rfpOpportunities.length} Open RFPs
+                <i className="ti ti-sparkles" style={{ fontSize:11, marginRight:3 }} />
+                {recentActive} New RFPs
               </span>
             </div>
           </div>
 
-          {/* Last updated bar */}
           <div style={{ marginTop:12, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
             <p style={{ margin:0, fontSize:12, color:"#93c5fd" }}>
               <i className="ti ti-refresh" style={{ fontSize:12, marginRight:5 }} />
               Data last updated: <strong style={{ color:"#fff" }}>{_meta.lastUpdated || "Unknown"}</strong>
               {_meta.updatedBy && <span style={{ color:"#bfdbfe" }}> · {_meta.updatedBy}</span>}
             </p>
-            {_meta.notes && (
-              <button onClick={() => setShowLog(v => !v)}
+            {(_meta.updateHistory?.length > 0 || _meta.notes) && (
+              <button onClick={() => setShowHistory(v => !v)}
                 style={{ fontSize:11, color:"#bfdbfe", background:"none",
-                  border:"1px solid #3b5ba9", borderRadius:12, padding:"2px 10px", cursor:"pointer" }}>
-                {showLog ? "Hide" : "Show"} update notes
+                  border:"1px solid #3b5ba9", borderRadius:12, padding:"2px 10px", cursor:"pointer",
+                  display:"flex", alignItems:"center", gap:4 }}>
+                <i className="ti ti-history" style={{ fontSize:11 }} />
+                {showHistory ? "Hide" : "Show"} update history
+                {_meta.updateHistory?.length > 0 && (
+                  <span style={{ background:"#3b5ba9", borderRadius:10, padding:"0 5px", fontSize:10, fontWeight:700 }}>
+                    {_meta.updateHistory.length}
+                  </span>
+                )}
               </button>
             )}
           </div>
-          {showLog && _meta.notes && (
-            <div style={{ marginTop:8, background:"rgba(0,0,0,0.25)", borderRadius:8,
-              padding:"10px 12px" }}>
-              <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.7 }}>{_meta.notes}</p>
+
+          {showHistory && (
+            <div style={{ marginTop:10, background:"rgba(0,0,0,0.28)", borderRadius:10, padding:"12px 14px",
+              display:"flex", flexDirection:"column", gap:0 }}>
+              <p style={{ margin:"0 0 10px", fontSize:11, fontWeight:700, color:"#93c5fd",
+                textTransform:"uppercase", letterSpacing:0.6 }}>
+                <i className="ti ti-history" style={{ fontSize:11, marginRight:5 }} />
+                Update history
+              </p>
+
+              {/* Structured history entries */}
+              {(_meta.updateHistory || []).map((entry, i) => (
+                <div key={i} style={{ display:"flex", gap:10, paddingBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? 10 : 0,
+                  marginBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? 10 : 0,
+                  borderBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+                  {/* Timeline dot */}
+                  <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
+                    <div style={{ width:8, height:8, borderRadius:"50%",
+                      background: i === 0 ? "#60a5fa" : "#3b5ba9", marginTop:3 }} />
+                    {(i < (_meta.updateHistory.length - 1) || _meta.notes) && (
+                      <div style={{ width:1, flex:1, background:"rgba(255,255,255,0.1)", marginTop:3 }} />
+                    )}
+                  </div>
+                  <div style={{ flex:1, paddingBottom:0 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3, flexWrap:"wrap" }}>
+                      <span style={{ fontSize:12, fontWeight:700, color: i === 0 ? "#93c5fd" : "#6b8ec7" }}>
+                        {entry.date}
+                      </span>
+                      {entry.updatedBy && (
+                        <span style={{ fontSize:11, color:"#6b8ec7", fontWeight:500 }}>· {entry.updatedBy}</span>
+                      )}
+                      {i === 0 && (
+                        <span style={{ fontSize:10, fontWeight:700, background:"#1e40af",
+                          color:"#bfdbfe", padding:"1px 7px", borderRadius:10 }}>latest</span>
+                      )}
+                    </div>
+                    <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.7 }}>{entry.notes}</p>
+                    {entry.statesUpdated?.length > 0 && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:6 }}>
+                        {entry.statesUpdated.map(abbr => (
+                          <span key={abbr} style={{ fontSize:10, fontWeight:700, padding:"1px 6px",
+                            borderRadius:8, background:"rgba(59,91,169,0.5)", color:"#bfdbfe" }}>{abbr}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Legacy _meta.notes fallback — shown as oldest entry if no structured history yet */}
+              {_meta.notes && !_meta.updateHistory?.length && (
+                <div style={{ display:"flex", gap:10 }}>
+                  <div style={{ flexShrink:0 }}>
+                    <div style={{ width:8, height:8, borderRadius:"50%", background:"#3b5ba9", marginTop:3 }} />
+                  </div>
+                  <div>
+                    <p style={{ margin:"0 0 3px", fontSize:12, fontWeight:700, color:"#6b8ec7" }}>
+                      {_meta.lastUpdated || "Previous version"}
+                      <span style={{ fontSize:10, fontWeight:500, marginLeft:6, color:"#6b8ec7" }}>(legacy note)</span>
+                    </p>
+                    <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.7 }}>{_meta.notes}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -632,10 +918,11 @@ export default function App() {
         {/* CONTENT */}
         <div style={{ background:"#fff", borderRadius:10, border:"1.5px solid #e5e7eb", padding:"1.5rem" }}>
 
-          {/* STATES DIRECTORY */}
+          {/* ── STATES DIRECTORY ── */}
           {tab === "states" && (
             <>
-              <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+              {/* Filters row */}
+              <div style={{ display:"flex", gap:8, marginBottom:10, flexWrap:"wrap" }}>
                 <div style={{ position:"relative", flex:1, minWidth:180 }}>
                   <i className="ti ti-search" style={{ position:"absolute", left:10,
                     top:"50%", transform:"translateY(-50%)", fontSize:14, color:"#9ca3af" }} />
@@ -660,6 +947,42 @@ export default function App() {
                 </select>
               </div>
 
+              {/* Sort row */}
+              <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+                <i className="ti ti-arrows-sort" style={{ fontSize:13, color:"#6b7280" }} />
+                <span style={{ fontSize:12, color:"#6b7280", fontWeight:500 }}>Sort:</span>
+                {[
+                  { id:"default",  label:"Default (active first)" },
+                  { id:"recent",   label:"Recently released", icon:"ti-sparkles" },
+                  { id:"alpha",    label:"A → Z" },
+                  { id:"award",    label:"Largest award" },
+                ].map(opt => (
+                  <button key={opt.id} onClick={() => setSortStates(opt.id)}
+                    style={{ padding:"5px 12px", fontSize:12, fontWeight:sortStates===opt.id?700:500,
+                      border:"1.5px solid", cursor:"pointer", borderRadius:20,
+                      borderColor: sortStates===opt.id ? "#7c3aed" : "#d1d5db",
+                      background: sortStates===opt.id ? "#f5f3ff" : "#fff",
+                      color: sortStates===opt.id ? "#6d28d9" : "#374151",
+                      display:"flex", alignItems:"center", gap:4 }}>
+                    {opt.icon && <i className={`ti ${opt.icon}`} style={{ fontSize:11 }} />}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Recently released callout banner */}
+              {sortStates === "recent" && (
+                <div style={{ marginBottom:14, padding:"10px 14px", background:"#f5f3ff",
+                  border:"2px solid #7c3aed", borderRadius:8,
+                  display:"flex", alignItems:"center", gap:10 }}>
+                  <i className="ti ti-sparkles" style={{ fontSize:18, color:"#7c3aed" }} />
+                  <p style={{ margin:0, fontSize:13, color:"#4c1d95", fontWeight:600 }}>
+                    Showing recently released RFPs first — {recentActive} states released new opportunities in the last 30 days.
+                  </p>
+                </div>
+              )}
+
+              {/* Active filter indicator */}
               {initFilter !== "all" && (
                 <div style={{ marginBottom:12, padding:"8px 12px", background:"#eff6ff",
                   border:"1px solid #bfdbfe", borderRadius:8, display:"flex", alignItems:"center", gap:8 }}>
@@ -675,41 +998,52 @@ export default function App() {
                 </div>
               )}
 
-              {filtActive.length > 0 && (
-                <div style={{ marginBottom:24 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
-                    padding:"8px 12px", background:"#f0fdf4", borderRadius:8, borderLeft:"4px solid #16a34a" }}>
-                    <i className="ti ti-circle-check" style={{ fontSize:16, color:"#16a34a" }} />
-                    <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
-                      Active states — RFPs released <span style={{ fontWeight:500, color:"#6b7280" }}>({filtActive.length})</span>
-                    </p>
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))", gap:12 }}>
-                    {filtActive.map(s => <StateCard key={s.abbr} s={s} onClick={setSelected} />)}
-                  </div>
+              {/* Grouped layout (default sort) */}
+              {showGrouped && (
+                <>
+                  {filtActive.length > 0 && (
+                    <div style={{ marginBottom:24 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
+                        padding:"8px 12px", background:"#f0fdf4", borderRadius:8, borderLeft:"4px solid #16a34a" }}>
+                        <i className="ti ti-circle-check" style={{ fontSize:16, color:"#16a34a" }} />
+                        <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
+                          Active states — RFPs released <span style={{ fontWeight:500, color:"#6b7280" }}>({filtActive.length})</span>
+                        </p>
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))", gap:12 }}>
+                        {filtActive.map(s => <StateCard key={s.abbr} s={s} onClick={setSelected} isRecent={RECENTLY_RELEASED.has(s.abbr)} />)}
+                      </div>
+                    </div>
+                  )}
+                  {filtPending.length > 0 && (
+                    <div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
+                        padding:"8px 12px", background:"#fffbeb", borderRadius:8, borderLeft:"4px solid #d97706" }}>
+                        <i className="ti ti-clock" style={{ fontSize:16, color:"#d97706" }} />
+                        <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
+                          Pending states — awaiting RFP release <span style={{ fontWeight:500, color:"#6b7280" }}>({filtPending.length})</span>
+                        </p>
+                      </div>
+                      <div style={{ marginBottom:10, padding:"10px 14px", background:"#fffbeb",
+                        border:"1px solid #fcd34d", borderRadius:8, fontSize:13, color:"#92400e" }}>
+                        These states received CMS awards but have not yet released RFPs. Click a card to see details and the official state RHTP page.
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))", gap:12 }}>
+                        {filtPending.map(s => <StateCard key={s.abbr} s={s} onClick={setSelected} isRecent={false} />)}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Flat layout (sorted views) */}
+              {!showGrouped && (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))", gap:12 }}>
+                  {filtFlat.map(s => <StateCard key={s.abbr} s={s} onClick={setSelected} isRecent={RECENTLY_RELEASED.has(s.abbr)} />)}
                 </div>
               )}
 
-              {filtPending.length > 0 && (
-                <div>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10,
-                    padding:"8px 12px", background:"#fffbeb", borderRadius:8, borderLeft:"4px solid #d97706" }}>
-                    <i className="ti ti-clock" style={{ fontSize:16, color:"#d97706" }} />
-                    <p style={{ margin:0, fontSize:14, fontWeight:700, color:"#111827" }}>
-                      Pending states — awaiting RFP release <span style={{ fontWeight:500, color:"#6b7280" }}>({filtPending.length})</span>
-                    </p>
-                  </div>
-                  <div style={{ marginBottom:10, padding:"10px 14px", background:"#fffbeb",
-                    border:"1px solid #fcd34d", borderRadius:8, fontSize:13, color:"#92400e" }}>
-                    These states received CMS awards but have not yet released RFPs. Click a card to see details and the official state RHTP page.
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(215px,1fr))", gap:12 }}>
-                    {filtPending.map(s => <StateCard key={s.abbr} s={s} onClick={setSelected} />)}
-                  </div>
-                </div>
-              )}
-
-              {filtActive.length === 0 && filtPending.length === 0 && (
+              {filtered.length === 0 && (
                 <p style={{ color:"#6b7280", fontSize:14, textAlign:"center", padding:"2rem" }}>
                   No states match your filters.
                 </p>
@@ -717,13 +1051,13 @@ export default function App() {
             </>
           )}
 
-          {/* DEADLINE TRACKER */}
+          {/* ── DEADLINE TRACKER ── */}
           {tab === "deadlines" && <DeadlineTracker deadlines={deadlines} />}
 
-          {/* COMPANY MATCH */}
+          {/* ── COMPANY MATCH ── */}
           {tab === "company" && <CompanyMatch rfps={rfpOpportunities} />}
 
-          {/* RESOURCES */}
+          {/* ── RESOURCES ── */}
           {tab === "resources" && (
             <div>
               <p style={{ margin:"0 0 16px", fontSize:13, color:"#6b7280" }}>Master documents, trackers, and authoritative sources.</p>
@@ -768,7 +1102,13 @@ export default function App() {
         </p>
       </div>
 
-      {selected && <Overlay s={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <Overlay
+          s={selected}
+          onClose={() => setSelected(null)}
+          isRecent={RECENTLY_RELEASED.has(selected.abbr)}
+        />
+      )}
     </div>
   );
 }
