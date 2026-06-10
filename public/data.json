@@ -24,8 +24,8 @@
       "anticipatedRelease": "Late June 2026",
       "submission": "TBD",
       "portalUrl": "https://adeca.alabama.gov/alruralhealth/",
-      "initiatives": ["Chronic Disease","Workforce Development","Technology Innovation"],
-      "notes": "Award confirmed at $203.4M. Sub-grants NOT YET RELEASED as of June 10, 2026. Expected release late June 2026 — check ADECA portal for updates.",
+      "initiatives": ["Chronic Disease","Workforce Development","Technology Innovation","Maternal & Doula","Behavioral Health","Telehealth"],
+      "notes": "$203.4M awarded. Sub-grants NOT YET RELEASED as of June 10, 2026. Expected late June 2026. RHTP Advisory Group established to guide implementation. 11 confirmed initiatives: collaborative EHR, rural health access, maternal & fetal health, workforce, cancer digital regionalization, mental health, and more. ADECA leads administration.",
       "contact": "alabama.rht@adeca.alabama.gov"
     },
     {
@@ -171,15 +171,15 @@
     {
       "name": "Idaho",
       "abbr": "ID",
-      "status": "pending",
+      "status": "active",
       "agency": "Idaho Dept of Health & Welfare",
       "award": "$186M",
-      "deadline": null,
-      "anticipatedRelease": "Q3–Q4 2026",
-      "submission": "TBD",
+      "deadline": "RFP posting and subgrant solicitations began May–June 2026. Contracts and subgrants expected July–September 2026. All Year 1 funds must be obligated by October 30, 2026.",
+      "anticipatedRelease": null,
+      "submission": "Portal (Idaho DHW)",
       "portalUrl": "https://healthandwelfare.idaho.gov/providers/rural-health-transformation-program-grant/about-rural-health-transformation-program-grant",
       "initiatives": ["Rural Hospital Support","Workforce Development","Technology Innovation"],
-      "notes": "Award confirmed at $186.0M. Implementation planning phase. No sub-grants released as of June 10, 2026. Expected Q3–Q4 2026.",
+      "notes": "$185.97M awarded. RFP posting and subgrant solicitations began May–June 2026 per state timeline. Contracts and subgrants expected July–September 2026. All Year 1 funds obligated by Oct 30, 2026. Check Idaho DHW RHTP page for current open solicitations.",
       "contact": "See Idaho DHW"
     },
     {
@@ -622,12 +622,12 @@
       "status": "active",
       "agency": "Utah Dept of Health & Human Services",
       "award": "$196M",
-      "deadline": "RELEASED — application via Qualtrics portal (utahdhs.iad1.qualtrics.com). June 8, 2026 deadline. Active RFPs on DHHS portal.",
+      "deadline": "Three open opportunities: Rural Clinician Credit Bank due June 25, 2026; Telehealth Infrastructure for Rural Access due July 10, 2026; Rural Health Facilities Capital Improvement Program due July 10, 2026. Written questions deadline June 12, 2026.",
       "anticipatedRelease": null,
       "submission": "Portal (Utah DHHS Qualtrics)",
       "portalUrl": "https://dhhs.utah.gov/ruralhealth/",
       "initiatives": ["Technology Innovation","Workforce Development","Value-Based Care"],
-      "notes": "RELEASED with June 8, 2026 deadline via Qualtrics portal. $195.7M awarded. Legislature approval granted early 2026. Expected ~$1B over 5 years.",
+      "notes": "$195.7M awarded. Three active funding opportunities: Rural Clinician Credit Bank (June 25), Telehealth Infrastructure for Rural Access (July 10), Rural Health Facilities Capital Improvement Program (July 10). Written questions due June 12. Check dhhs.utah.gov/ruralhealth/funding-opportunities/ for details.",
       "contact": "See Utah DHHS RHTP page"
     },
     {
@@ -678,13 +678,13 @@
       "status": "active",
       "agency": "WV Dept of Health & Human Resources",
       "award": "$199M",
-      "deadline": "Initial round CLOSED May 15, 2026. New rounds expected. Check WV DHHR portal.",
+      "deadline": "Multiple active AFAs: Local Health Challenge (Personal Health Accelerator) released May 27, 2026 — Q&A released June 8. Virtual Clinical Training & Specialty Consultation AFA open (deadline May 28, extended). Additional workforce and workforce upskilling AFAs active. Check WV OASIS portal.",
       "anticipatedRelease": null,
-      "submission": "Portal (WV DHHR)",
+      "submission": "Portal (WV OASIS Vendor Self Service)",
       "portalUrl": "https://health.wv.gov/rural-health-transformation-program",
       "initiatives": ["Workforce Development","Technology Innovation","Rural Hospital Support"],
-      "notes": "Legislature passed RHTP supplemental appropriation. $199.5M deployed. Initial round CLOSED May 15, 2026. New rounds expected. Hiring underway.",
-      "contact": "See WV DHHR RHTP page"
+      "notes": "$199,476,099 awarded. Mountain State Care Force program. Multiple AFAs active: Local Health Challenge (Personal Health Accelerator, released May 27, Q&A June 8); Virtual Clinical Training & Specialty Consultation; Rural Graduate Medical Education & Training Capacity; workforce upskilling. Governor Morrisey announced $62M+ in funded opportunities. All via WV OASIS portal (prd311.wvoasis.gov).",
+      "contact": "Mike Sheets mike.sheets@wv.gov"
     },
     {
       "name": "Wisconsin",
@@ -989,12 +989,12 @@
     {
       "abbr": "WV",
       "name": "West Virginia",
-      "specificDate": "Initial round CLOSED May 15, 2026. Team submitted May 15.",
-      "nextDue": "New rounds expected — check WV DHHR portal",
+      "specificDate": "Multiple active AFAs: Local Health Challenge released May 27 (Q&A June 8); Virtual Clinical Training AFA open; workforce upskilling AFAs active",
+      "nextDue": "Check WV OASIS portal (prd311.wvoasis.gov) for current deadlines across all active AFAs",
       "award": "$199M",
-      "submission": "Portal (WV DHHR)",
+      "submission": "Portal (WV OASIS Vendor Self Service)",
       "portalUrl": "https://health.wv.gov/rural-health-transformation-program",
-      "urgency": "watch"
+      "urgency": "open"
     },
     {
       "abbr": "NC",
@@ -1039,12 +1039,12 @@
     {
       "abbr": "UT",
       "name": "Utah",
-      "specificDate": "RELEASED with June 8, 2026 deadline via Qualtrics portal",
-      "nextDue": "Application window closed — watch DHHS for next round",
+      "specificDate": "Three active opportunities: Rural Clinician Credit Bank (June 25), Telehealth Infrastructure (July 10), Rural Health Facilities Capital Improvement (July 10)",
+      "nextDue": "June 12, 2026 — written questions deadline; June 25 — Rural Clinician Credit Bank; July 10 — Telehealth Infrastructure & Capital Improvement",
       "award": "$196M",
-      "submission": "Portal (Utah DHHS Qualtrics)",
+      "submission": "Portal (Utah DHHS)",
       "portalUrl": "https://dhhs.utah.gov/ruralhealth/",
-      "urgency": "watch"
+      "urgency": "upcoming"
     },
     {
       "abbr": "TX",
@@ -1160,12 +1160,12 @@
     {
       "abbr": "ID",
       "name": "Idaho",
-      "specificDate": "Not yet released",
-      "nextDue": "Estimated Q3–Q4 2026",
+      "specificDate": "RFP posting and subgrant solicitations began May–June 2026 per state timeline",
+      "nextDue": "Contracts and subgrants expected July–September 2026 — check Idaho DHW for current open solicitations",
       "award": "$186M",
-      "submission": "TBD",
-      "portalUrl": null,
-      "urgency": "pending"
+      "submission": "Portal (Idaho DHW)",
+      "portalUrl": "https://healthandwelfare.idaho.gov/providers/rural-health-transformation-program-grant/about-rural-health-transformation-program-grant",
+      "urgency": "open"
     },
     {
       "abbr": "MA",
