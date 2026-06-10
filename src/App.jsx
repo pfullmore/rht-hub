@@ -23,7 +23,7 @@ function useData() {
   const [error, setError]   = useState(null);
 
   useEffect(() => {
-    fetch("/src/data.json")
+    fetch("/data.json")
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
