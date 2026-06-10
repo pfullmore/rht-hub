@@ -815,6 +815,12 @@ export default function App() {
               <i className="ti ti-refresh" style={{ fontSize:12, marginRight:5 }} />
               Data last updated: <strong style={{ color:"#fff" }}>{_meta.lastUpdated || "Unknown"}</strong>
               {_meta.updatedBy && <span style={{ color:"#bfdbfe" }}> · {_meta.updatedBy}</span>}
+              {_meta.version && (
+                <span style={{ marginLeft:8, fontSize:10, fontWeight:700, background:"#1e3a8a",
+                  border:"1px solid #3b5ba9", color:"#93c5fd", padding:"1px 7px", borderRadius:10 }}>
+                  {_meta.version}
+                </span>
+              )}
             </p>
             {(_meta.updateHistory?.length > 0 || _meta.notes) && (
               <button onClick={() => setShowHistory(v => !v)}
@@ -841,57 +847,67 @@ export default function App() {
                 Update history
               </p>
 
-              {/* Structured history entries */}
-              {(_meta.updateHistory || []).map((entry, i) => (
-                <div key={i} style={{ display:"flex", gap:10, paddingBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? 10 : 0,
-                  marginBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? 10 : 0,
-                  borderBottom: i < (_meta.updateHistory.length - 1) || _meta.notes ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
-                  {/* Timeline dot */}
-                  <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%",
-                      background: i === 0 ? "#60a5fa" : "#3b5ba9", marginTop:3 }} />
-                    {(i < (_meta.updateHistory.length - 1) || _meta.notes) && (
-                      <div style={{ width:1, flex:1, background:"rgba(255,255,255,0.1)", marginTop:3 }} />
-                    )}
-                  </div>
-                  <div style={{ flex:1, paddingBottom:0 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:12, fontWeight:700, color: i === 0 ? "#93c5fd" : "#6b8ec7" }}>
-                        {entry.date}
-                      </span>
-                      {entry.updatedBy && (
-                        <span style={{ fontSize:11, color:"#6b8ec7", fontWeight:500 }}>· {entry.updatedBy}</span>
-                      )}
-                      {i === 0 && (
-                        <span style={{ fontSize:10, fontWeight:700, background:"#1e40af",
-                          color:"#bfdbfe", padding:"1px 7px", borderRadius:10 }}>latest</span>
+              {(_meta.updateHistory || []).map((entry, i) => {
+                const isLast = i === (_meta.updateHistory.length - 1) && !_meta.notes;
+                return (
+                  <div key={i} style={{ display:"flex", gap:10,
+                    paddingBottom: !isLast ? 12 : 0,
+                    marginBottom: !isLast ? 12 : 0,
+                    borderBottom: !isLast ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+                    {/* Timeline dot + line */}
+                    <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center" }}>
+                      <div style={{ width:8, height:8, borderRadius:"50%", marginTop:4, flexShrink:0,
+                        background: i === 0 ? "#60a5fa" : "#3b5ba9" }} />
+                      {!isLast && (
+                        <div style={{ width:1, flex:1, background:"rgba(255,255,255,0.1)", marginTop:4 }} />
                       )}
                     </div>
-                    <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.7 }}>{entry.notes}</p>
-                    {entry.statesUpdated?.length > 0 && (
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:6 }}>
-                        {entry.statesUpdated.map(abbr => (
-                          <span key={abbr} style={{ fontSize:10, fontWeight:700, padding:"1px 6px",
-                            borderRadius:8, background:"rgba(59,91,169,0.5)", color:"#bfdbfe" }}>{abbr}</span>
-                        ))}
+                    <div style={{ flex:1 }}>
+                      {/* Row 1: date · by · version · latest badge */}
+                      <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4, flexWrap:"wrap" }}>
+                        <span style={{ fontSize:12, fontWeight:700, color: i === 0 ? "#93c5fd" : "#6b8ec7" }}>
+                          {entry.date}
+                        </span>
+                        {entry.updatedBy && (
+                          <span style={{ fontSize:11, color:"#6b8ec7" }}>· {entry.updatedBy}</span>
+                        )}
+                        {entry.version && (
+                          <span style={{ fontSize:10, fontWeight:700, padding:"1px 7px", borderRadius:10,
+                            background:"rgba(30,58,138,0.7)", color:"#93c5fd", border:"1px solid #3b5ba9" }}>
+                            {entry.version}
+                          </span>
+                        )}
+                        {i === 0 && (
+                          <span style={{ fontSize:10, fontWeight:700, background:"#1e40af",
+                            color:"#bfdbfe", padding:"1px 7px", borderRadius:10 }}>latest</span>
+                        )}
                       </div>
-                    )}
+                      {/* Notes */}
+                      <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.75 }}>{entry.notes}</p>
+                      {/* State chips */}
+                      {entry.statesUpdated?.length > 0 && (
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:6 }}>
+                          {entry.statesUpdated.map(abbr => (
+                            <span key={abbr} style={{ fontSize:10, fontWeight:700, padding:"1px 6px",
+                              borderRadius:8, background:"rgba(59,91,169,0.5)", color:"#bfdbfe" }}>{abbr}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
-              {/* Legacy _meta.notes fallback — shown as oldest entry if no structured history yet */}
+              {/* Legacy fallback for old data.json with only _meta.notes */}
               {_meta.notes && !_meta.updateHistory?.length && (
                 <div style={{ display:"flex", gap:10 }}>
-                  <div style={{ flexShrink:0 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:"#3b5ba9", marginTop:3 }} />
-                  </div>
+                  <div style={{ width:8, height:8, borderRadius:"50%", background:"#3b5ba9", marginTop:4, flexShrink:0 }} />
                   <div>
                     <p style={{ margin:"0 0 3px", fontSize:12, fontWeight:700, color:"#6b8ec7" }}>
                       {_meta.lastUpdated || "Previous version"}
                       <span style={{ fontSize:10, fontWeight:500, marginLeft:6, color:"#6b8ec7" }}>(legacy note)</span>
                     </p>
-                    <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.7 }}>{_meta.notes}</p>
+                    <p style={{ margin:0, fontSize:12, color:"#93c5fd", lineHeight:1.75 }}>{_meta.notes}</p>
                   </div>
                 </div>
               )}
