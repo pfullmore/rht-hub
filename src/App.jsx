@@ -14,7 +14,7 @@ const ALL_INITIATIVES = [
 ];
 
 // States with RFPs released very recently (within ~30 days of data date)
-const RECENTLY_RELEASED = new Set(["AK","FL","AR","MN","WA","TN","WI","LA","OK","VT","SC","IN","CT","DE","GA"]);
+const RECENTLY_RELEASED = new Set(["FL","AR"]);
 
 const fitColor = { Strong:"#16a34a", Moderate:"#d97706", Limited:"#9ca3af" };
 const fitBg    = { Strong:"#dcfce7", Moderate:"#fef3c7", Limited:"#f3f4f6" };
